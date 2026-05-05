@@ -59,3 +59,25 @@ export const verifySuperAdmin = (req, res, next) => {
         next(createError(500, err.message));
     }
 };
+
+export const verifyIsSameUser = (req, res, next) => {
+    try {
+        verifyToken(req, res, () => {
+            const { userId } = req.params;
+            const requestingUserId = req.user._id;
+            const userRole = req.user.role;
+
+            // Allow access if user is requesting their own data or is manager/super_admin
+            const isSameUser = userId === requestingUserId;
+            const isAuthorized = ['manager', 'super_admin'].includes(userRole);
+
+            if (isSameUser || isAuthorized) {
+                next();
+            } else {
+                next(createError(403, 'You can only access your own user information'))
+            }
+        });
+    } catch (err) {
+        next(createError(500, err.message));
+    }
+};
