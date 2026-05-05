@@ -2,7 +2,7 @@ import User from '../models/user.js'
 import Lead from '../models/lead.js'
 import { createError } from '../utils/error.js'
 import bcrypt from 'bcryptjs'
-
+import validator from 'validator'
 
 export const getUsers = async (req, res, next) => {
     try {
@@ -107,11 +107,38 @@ export const getEmployees = async (req, res, next) => {
 
 export const createClient = async (req, res, next) => {
     try {
+        const { firstName, lastName, phone, email, city } = req.body
 
-        const findedUser = await User.findOne({ email: req.body.email })
-        if (Boolean(findedUser)) return next(createError(400, 'Email already exist'))
+        // Validate required fields (based on userSchema: firstName, lastName, phone are required)
+        if (!firstName) return next(createError(400, 'First name is required'))
+        if (!lastName) return next(createError(400, 'Last name is required'))
+        if (!phone) return next(createError(400, 'Phone number is required'))
 
-        const result = await User.create({ ...req.body, role: 'client' })
+        // Validate field lengths
+        if (firstName.trim().length < 2) return next(createError(400, 'First name must be at least 2 characters'))
+        if (lastName.trim().length < 2) return next(createError(400, 'Last name must be at least 2 characters'))
+        
+        // Validate phone format (basic validation: must be digits and reasonable length)
+        const phoneRegex = /^[0-9]{10,15}$/
+        if (!phoneRegex.test(phone)) return next(createError(400, 'Phone number must be 10-15 digits'))
+
+        // Validate email format if provided
+        if (email && !validator.isEmail(email)) return next(createError(400, 'Invalid email format'))
+
+        // Check if phone already exists
+        const findedUserByPhone = await User.findOne({ phone })
+        if (Boolean(findedUserByPhone)) return next(createError(400, 'Phone number already exists'))
+
+        // Check if email already exists (only if email is provided)
+        if (email) {
+            const findedUser = await User.findOne({ email })
+            if (Boolean(findedUser)) return next(createError(400, 'Email already exists'))
+        }
+
+        // Generate username for client based on phone (clients don't use username for login)
+        const username = `client_${phone}`
+
+        const result = await User.create({ ...req.body, username, role: 'client' })
         res.status(200).json({ result, message: 'client created seccessfully', success: true })
 
     } catch (err) {
@@ -120,11 +147,41 @@ export const createClient = async (req, res, next) => {
 }
 export const createEmployee = async (req, res, next) => {
     try {
+        const { firstName, lastName, username, phone, email, password, city } = req.body
 
-        const findedUser = await User.findOne({ username: req.body.username })
-        if (Boolean(findedUser)) return next(createError(400, 'Username already exist'))
+        // Validate required fields
+        if (!firstName) return next(createError(400, 'First name is required'))
+        if (!lastName) return next(createError(400, 'Last name is required'))
+        if (!username) return next(createError(400, 'Username is required'))
+        if (!phone) return next(createError(400, 'Phone number is required'))
+        if (!password) return next(createError(400, 'Password is required'))
 
-        const { password } = req.body
+        // Validate field lengths
+        if (firstName.trim().length < 2) return next(createError(400, 'First name must be at least 2 characters'))
+        if (lastName.trim().length < 2) return next(createError(400, 'Last name must be at least 2 characters'))
+        if (username.trim().length < 3) return next(createError(400, 'Username must be at least 3 characters'))
+        if (password.length < 6) return next(createError(400, 'Password must be at least 6 characters'))
+
+        // Validate phone format (basic validation: must be digits and reasonable length)
+        const phoneRegex = /^[0-9]{10,15}$/
+        if (!phoneRegex.test(phone)) return next(createError(400, 'Phone number must be 10-15 digits'))
+
+        // Validate email format if provided
+        if (email && !validator.isEmail(email)) return next(createError(400, 'Invalid email format'))
+
+        const findedUser = await User.findOne({ username })
+        if (Boolean(findedUser)) return next(createError(400, 'Username already exists'))
+
+        const findedUserByPhone = await User.findOne({ phone })
+        if (Boolean(findedUserByPhone)) return next(createError(400, 'Phone number already exists'))
+
+        // Check if email already exists (only if email is provided)
+        if (email) {
+            const findedUserByEmail = await User.findOne({ email })
+            if (Boolean(findedUserByEmail)) return next(createError(400, 'Email already exists'))
+        }
+
+        // Hash password
         const hashedPassword = await bcrypt.hash(password, 12)
 
         const result = await User.create({ ...req.body, password: hashedPassword, role: 'employee' })
