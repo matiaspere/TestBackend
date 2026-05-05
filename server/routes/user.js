@@ -1,5 +1,5 @@
 import express from 'express'
-import { getUsers, getUser, getEmployeeClients,filterUser, createClient, createEmployee, updateRole, deleteUser, getClients, getEmployees, deleteWholeCollection } from '../controllers/user.js'
+import { getUsers, getUser, getEmployeeClients,filterUser, createClient, createEmployee, updateUser, updateRole, deleteUser, getClients, getEmployees, deleteWholeCollection } from '../controllers/user.js'
 import { verifyManager, verifyEmployee, verifyToken, verifySuperAdmin, verifyIsSameUser } from '../middleware/auth.js'
 import { createError } from '../utils/error.js'
 
@@ -19,6 +19,7 @@ router.post('/create/client', verifyToken, verifyEmployee, createClient)
 router.post('/create/employee', verifyToken, verifyManager, createEmployee)
 
 // PUT
+router.put('/update/:userId', verifyToken, verifyIsSameUser, updateUser)
 router.put('/update-role/:userId', verifyToken, verifyManager, updateRole)
 
 // DELETE

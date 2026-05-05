@@ -38,14 +38,15 @@ const EditModal = ({ open, setOpen }) => {
   const [employeeData, setEmployeeData] = useState(currentEmployee);
   /////////////////////////////////////// USE EFFECT ///////////////////////////////////////
   useEffect(() => {
-    setEmployeeData(currentEmployee);
-  }, [currentEmployee]);
+    if (open && currentEmployee) {
+      setEmployeeData(currentEmployee);
+    }
+  }, [currentEmployee, open]);
 
   /////////////////////////////////////// FUNCTIONS ///////////////////////////////////////
   const handleSubmit = (e) => {
     e.preventDefault();
     dispatch(updateUser(currentEmployee._id, employeeData, employeeData?.role));
-    setEmployeeData(initialEmployeeState);
     setOpen(false);
   };
 
@@ -77,7 +78,7 @@ const EditModal = ({ open, setOpen }) => {
         <div className="flex flex-col gap-2 p-3 text-gray-500 font-primary">
           <div className="text-xl flex justify-start items-center gap-2 font-normal">
             <PiNotepad size={23} />
-            <span>Employee Detials</span>
+            <span>Employee Details</span>
           </div>
           <Divider />
           <table className="mt-4">
@@ -111,7 +112,7 @@ const EditModal = ({ open, setOpen }) => {
                     fullWidth
                     placeholder="Optional"
                     value={employeeData?.email}
-                    onChange={(e) => handleChange('email', e.target.value)}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
                   />
                 </td>
               </tr>

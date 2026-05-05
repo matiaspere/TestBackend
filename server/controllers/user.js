@@ -192,6 +192,75 @@ export const createEmployee = async (req, res, next) => {
     }
 }
 
+export const updateUser = async (req, res, next) => {
+    try {
+        const { userId } = req.params
+        const { firstName, lastName, username, phone, email, city, CNIC } = req.body
+
+        // Check if user exists
+        const findedUser = await User.findById(userId)
+        if (!findedUser) return next(createError(404, 'User not found'))
+
+        if (firstName !== undefined) {
+            if (!firstName || firstName.trim().length < 2) {
+                return next(createError(400, 'First name must be at least 2 characters'))
+            }
+        }
+
+        if (lastName !== undefined) {
+            if (!lastName || lastName.trim().length < 2) {
+                return next(createError(400, 'Last name must be at least 2 characters'))
+            }
+        }
+
+        if (username !== undefined) {
+            if (!username || username.trim().length < 3) {
+                return next(createError(400, 'Username must be at least 3 characters'))
+            }
+            // Check username uniqueness (exclude current user)
+            const existingUser = await User.findOne({ username, _id: { $ne: userId } })
+            if (existingUser) return next(createError(400, 'Username already exists'))
+        }
+
+        if (phone !== undefined) {
+            if (!phone) return next(createError(400, 'Phone number is required'))
+            const phoneRegex = /^[0-9]{10,15}$/
+            if (!phoneRegex.test(phone)) {
+                return next(createError(400, 'Phone number must be 10-15 digits'))
+            }
+            // Check phone uniqueness (exclude current user)
+            const existingUserByPhone = await User.findOne({ phone, _id: { $ne: userId } })
+            if (existingUserByPhone) return next(createError(400, 'Phone number already exists'))
+        }
+
+        if (email !== undefined && email.trim() !== '') {
+            if (!validator.isEmail(email)) {
+                return next(createError(400, 'Invalid email format'))
+            }
+            // Check email uniqueness (exclude current user)
+            const existingUserByEmail = await User.findOne({ email, _id: { $ne: userId } })
+            if (existingUserByEmail) return next(createError(400, 'Email already exists'))
+        }
+
+        // Build update object with only provided fields
+        const updateData = {}
+        if (firstName !== undefined) updateData.firstName = firstName
+        if (lastName !== undefined) updateData.lastName = lastName
+        if (username !== undefined) updateData.username = username
+        if (phone !== undefined) updateData.phone = phone
+        if (email !== undefined) updateData.email = email
+        if (city !== undefined) updateData.city = city
+        if (CNIC !== undefined) updateData.CNIC = CNIC
+
+        // Update user
+        const updatedUser = await User.findByIdAndUpdate(userId, updateData, { new: true })
+        res.status(200).json({ result: updatedUser, message: 'User updated successfully', success: true })
+
+    } catch (err) {
+        next(createError(500, err.message))
+    }
+}
+
 export const updateRole = async (req, res, next) => {
     try {
 
